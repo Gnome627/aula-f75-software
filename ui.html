@@ -1,0 +1,939 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AULA F75</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%231f1814%22/%3E%3Cg fill=%22%23f4ede2%22%3E%3Cpath d=%22M31.8 25.5 20.8 13.0 15.0 3.0 17.2 15.0 28.2 28.5z%22/%3E%3Cpath d=%22M35.8 28.5 46.8 15.0 49.0 3.0 43.2 13.0 32.2 25.5z%22/%3E%3Cpath d=%22M30.0 26.9 11.6 18.6 3.0 30.0 12.4 23.4 28.0 31.1z%22/%3E%3Cpath d=%22M36.0 31.1 51.6 23.4 61.0 30.0 52.4 18.6 34.0 26.9z%22/%3E%3Cpath d=%22M28.4 29.8 10.6 35.3 5.0 50.0 13.4 38.7 29.6 34.2z%22/%3E%3Cpath d=%22M34.4 34.2 50.6 38.7 59.0 50.0 53.4 35.3 35.6 29.8z%22/%3E%3Cpath d=%22M28.2 33.5 18.1 46.2 18.0 61.0 21.9 47.8 31.8 36.5z%22/%3E%3Cpath d=%22M32.2 36.5 42.1 47.8 46.0 61.0 45.9 46.2 35.8 33.5z%22/%3E%3Cpath d=%22M32 14l10 14-10 20-10-20z%22/%3E%3C/g%3E%3C/svg%3E">
+<style>
+:root { --bg: #09090b; --surface: #111114; --raised: #1a1a1f; --line: #26262c; --text: #f2f2f4; --muted: #8a8a94; --dim: #5d5d66;
+  --accent: #ff1f3d; --ok: #3ddc84; --cut: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  --font: Bahnschrift, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; color: var(--text); font: 14.5px/1.45 var(--font);
+  background: radial-gradient(1100px 520px at -8% -18%, rgba(255, 31, 61, .16), transparent 62%), var(--bg); background-attachment: fixed; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-thumb { background: #2c2c33; } * { scrollbar-width: thin; scrollbar-color: #2c2c33 transparent; }
+[hidden] { display: none !important; }
+
+/* shell */
+.shell { display: grid; grid-template-columns: 208px minmax(0, 1fr); min-height: 100%; }
+.rail { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 24px 0 20px; border-right: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 12px; padding: 0 22px 30px; }
+.brand b { display: block; font-size: 30px; font-stretch: 75%; font-weight: 700; line-height: .9; letter-spacing: .02em; }
+.brand span { font-size: 11px; letter-spacing: .34em; color: var(--muted); }
+#tabs { display: flex; flex-direction: column; }
+#tabs button { display: flex; align-items: baseline; gap: 12px; padding: 12px 22px; border: 0; background: none; text-align: left; color: var(--muted);
+  font-size: 16px; font-stretch: 80%; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+#tabs button i { font-style: normal; font-size: 11px; color: var(--dim); letter-spacing: .1em; }
+#tabs button:hover { color: var(--text); }
+#tabs button.active { color: var(--text); background: linear-gradient(90deg, rgba(255, 31, 61, .24), transparent 85%); box-shadow: inset 3px 0 0 var(--accent); }
+#tabs button.active i { color: var(--accent); }
+/* undo and redo sit in the top right corner of every tab */
+.history { position: absolute; top: 27px; right: 38px; display: flex; gap: 4px; }
+.history .btn { width: 44px; padding: 0; display: grid; place-items: center; }
+.history svg { width: 19px; height: 19px; fill: currentColor; }
+.head { padding-right: 104px; }
+.langs { margin-top: auto; display: flex; gap: 8px; padding: 0 22px 16px; }
+.langs button { width: 30px; height: 20px; padding: 0; border: 1px solid var(--line); background: none; opacity: .4; transition: opacity .12s; }
+.langs button:hover { opacity: .8; }
+.langs button.active { opacity: 1; border-color: var(--text); }
+.langs svg { display: block; width: 100%; height: 100%; }
+.status { display: flex; align-items: center; gap: 9px; padding: 0 22px; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+.dot { width: 8px; height: 8px; background: var(--accent); transform: skewX(-14deg); }
+.dot.on { background: var(--ok); }
+main { position: relative; padding: 26px 38px 30px; max-width: 1220px; width: 100%; }
+
+/* type */
+.head { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; min-height: 40px; }
+h1 { margin: 0; font-size: 38px; line-height: .95; font-stretch: 75%; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+.sub { margin: 0 0 3px; color: var(--muted); font-size: 13.5px; }
+.grow { flex: 1; }
+h2 { margin: 0 0 14px; font-size: 13px; font-stretch: 85%; font-weight: 700; text-transform: uppercase; letter-spacing: .18em; color: var(--text); }
+h2::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 9px; background: var(--accent); transform: skewX(-14deg); }
+h3 { margin: 14px 0 7px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .18em; color: var(--dim); }
+h3:first-child { margin-top: 0; }
+.hint { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
+
+/* keyboard */
+.stage { padding: 1px; margin-bottom: 24px; background: linear-gradient(120deg, var(--accent), var(--line) 22%, var(--line));
+  clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 26px 100%, 0 calc(100% - 26px)); }
+.plate { padding: 24px 28px; background: linear-gradient(180deg, #16161a, #0d0d0f);
+  clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 26px 100%, 0 calc(100% - 26px)); }
+.kb { position: relative; width: 100%; max-width: 860px; margin: 0 auto; aspect-ratio: 16 / 6.25; container-type: inline-size; user-select: none; touch-action: none; }
+.key { position: absolute; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; cursor: pointer;
+  background: #1c1c21; color: #9c9ca6; border: 1px solid #2d2d34; border-radius: 0; font-size: 1.5cqw; font-stretch: 92%; font-weight: 600; line-height: 1.05; padding: 0 .3cqw;
+  transition: transform .06s, background .12s; }
+.key:hover { transform: translateY(-1px); border-color: #4a4a54; }
+.key.knob { border-radius: 50%; }
+.key.noled { background: transparent; border-style: dashed; cursor: default; }
+.key.selected { outline: 2px solid var(--accent); outline-offset: 2px; z-index: 1; color: var(--text); }
+.key.changed { color: var(--text); border-color: var(--accent); background: rgba(255, 31, 61, .16); }
+.key.empty { opacity: .45; }
+#kbKeys .key { font-size: 1.3cqw; }
+
+/* panes under the keyboard */
+.inspector { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) 290px; }
+.inspector.two { grid-template-columns: 330px minmax(0, 1fr); }
+.pane { padding: 0 28px; border-left: 1px solid var(--line); min-width: 0; }
+.pane:first-child { padding-left: 0; border-left: 0; }
+.pane:last-child { padding-right: 0; }
+.span2 { grid-column: span 2; }
+@media (max-width: 1040px) { .inspector, .inspector.two { grid-template-columns: 1fr; gap: 26px; } .pane { padding: 0; border: 0; } .span2 { grid-column: auto; } }
+@media (max-width: 760px) { .shell { grid-template-columns: 1fr; } .rail { position: static; height: auto; flex-direction: row; align-items: center; padding: 12px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .brand { padding: 0 12px 0 6px; } #tabs { flex-direction: row; } #tabs button { padding: 8px 10px; } .history { top: 19px; right: 18px; } .langs { margin: 0 0 0 auto; padding: 0 12px; } .status { margin: 0; } main { padding: 18px; } }
+
+/* controls */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button, .btn, .options button { border: 0; clip-path: var(--cut); background: var(--raised); color: #c8c8d0; transition: background .12s, color .12s; }
+.chips button { height: 31px; padding: 0 15px; font-size: 13.5px; }
+.chips button:hover, .btn:hover:not(:disabled), .options button:hover { background: #26262d; color: var(--text); }
+.chips button.active { background: var(--accent); color: #fff; font-weight: 700; }
+.btn { height: 35px; padding: 0 20px; font-size: 13px; font-stretch: 85%; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; white-space: nowrap; }
+.btn.mini { height: 30px; padding: 0 13px; font-size: 11.5px; }
+.btn:disabled { opacity: .35; cursor: default; }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover:not(:disabled) { background: #ff3d57; color: #fff; }
+.btn.active { background: var(--text); color: var(--bg); }
+.btn.quiet { background: none; color: var(--muted); padding: 0 8px; clip-path: none; }
+.btn.quiet:hover:not(:disabled) { background: none; color: var(--accent); }
+.bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.stack { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.field { margin-bottom: 20px; }
+.field:last-child { margin-bottom: 0; }
+.label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+.label span:last-child { color: var(--text); letter-spacing: .04em; text-transform: none; font-size: 13.5px; }
+input[type=range] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 4px; margin: 8px 0; background: linear-gradient(90deg, var(--accent) var(--p, 50%), #2b2b32 var(--p, 50%)); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 22px; background: #fff; border: 0; cursor: pointer; }
+input[type=range]::-moz-range-thumb { width: 10px; height: 22px; background: #fff; border: 0; border-radius: 0; cursor: pointer; }
+input[type=text], input[type=number], select { background: #0e0e11; border: 1px solid var(--line); border-radius: 0; padding: 8px 11px; outline: 0; }
+input[type=text]:focus, input[type=number]:focus, select:focus { border-color: var(--accent); }
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.swatch { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 0; }
+.swatch.active { outline: 2px solid #fff; outline-offset: 2px; }
+.swatch.rainbow { background: linear-gradient(135deg, #ff2a2a, #ffd400, #2aff5a, #2ad4ff, #6a4bff, #ff2ad4); }
+
+/* colour picker */
+.picker { display: grid; gap: 11px; max-width: 290px; }
+.sv { position: relative; height: 128px; cursor: crosshair; touch-action: none;
+  background: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent), hsl(var(--h, 0) 100% 50%); }
+.sv i { position: absolute; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .5); transform: translate(-50%, -50%); pointer-events: none; }
+input[type=range].hue { height: 10px; margin: 0; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+input[type=range].hue::-webkit-slider-thumb { width: 8px; height: 20px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .6); }
+.picker .line { display: flex; align-items: center; gap: 10px; }
+.picker .chip { width: 36px; height: 36px; flex: none; }
+.picker input[type=text] { width: 96px; font-family: "Cascadia Mono", Consolas, monospace; font-size: 14px; }
+.picker .swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.picker .swatch { width: auto; height: 22px; }
+.paint { display: grid; grid-template-columns: 290px 1fr; gap: 28px; align-items: start; }
+#picBox { width: 320px; max-width: 100%; margin-top: 8px; }
+#picCanvas { display: block; width: 100%; aspect-ratio: 16 / 6.25; border: 1px solid var(--line); cursor: grab; touch-action: none; }
+#picCanvas:active { cursor: grabbing; }
+
+/* key map */
+.options { max-height: 250px; overflow: auto; margin-top: 12px; padding-right: 6px; }
+.options .grid { display: flex; flex-wrap: wrap; gap: 5px; }
+.options button { height: 27px; padding: 0 12px; font-size: 13px; }
+.now { margin: 0 0 14px; font-size: 20px; font-stretch: 85%; font-weight: 600; line-height: 1.2; }
+.mods { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-top: 18px; color: var(--muted); }
+.mods label { color: var(--text); }
+.mods label:has(input:disabled) { opacity: .4; }
+.mods input { accent-color: var(--accent); }
+
+/* lists */
+.vlist { display: flex; flex-direction: column; }
+.vlist button { border: 0; background: none; text-align: left; padding: 9px 12px; color: var(--muted); font-size: 15px; }
+.vlist button:hover { color: var(--text); }
+.vlist button.active { color: var(--text); background: linear-gradient(90deg, rgba(255, 31, 61, .22), transparent 90%); box-shadow: inset 3px 0 0 var(--accent); }
+.notice { max-width: 920px; margin: 0 0 24px; padding: 14px 18px; border-left: 3px solid var(--accent); background: linear-gradient(90deg, rgba(255, 31, 61, .13), rgba(255, 31, 61, .03)); color: #dcdce2; }
+.notice b { color: #fff; text-transform: uppercase; font-stretch: 85%; letter-spacing: .08em; margin-right: 6px; }
+.ev { display: grid; grid-template-columns: 26px 130px minmax(0, 1fr) 170px 30px; gap: 8px; align-items: center; padding: 3px 0; }
+.ev .n { color: var(--dim); text-align: right; font-size: 12px; }
+.ev select, .ev input { padding: 6px 9px; width: 100%; }
+.ev .delay { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; }
+.ev .delay input { width: 84px; }
+.ev button { border: 0; background: none; color: var(--dim); font-size: 20px; line-height: 1; }
+.ev button:hover { color: var(--accent); }
+#macroEvents { max-height: 56vh; overflow: auto; padding-right: 6px; }
+.btn.recording { background: var(--accent); color: #fff; }
+.profiles { list-style: none; margin: 0 0 22px; padding: 0; max-width: 760px; }
+.profiles li { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.profiles span { flex: 1; font-size: 20px; font-stretch: 85%; font-weight: 600; }
+.offline { max-width: 560px; margin-top: 12vh; }
+.offline p { color: var(--muted); font-size: 16px; margin: 14px 0 22px; }
+#toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); max-width: 90vw; padding: 11px 22px; background: var(--text); color: var(--bg); font-weight: 600;
+  clip-path: var(--cut); opacity: 0; pointer-events: none; transition: opacity .2s; }
+#toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <div class="brand"><svg viewBox="0 0 64 64" width="38" height="38" aria-hidden="true"><g fill="currentColor"><path d="M31.8 25.5 20.8 13.0 15.0 3.0 17.2 15.0 28.2 28.5z"/><path d="M35.8 28.5 46.8 15.0 49.0 3.0 43.2 13.0 32.2 25.5z"/><path d="M30.0 26.9 11.6 18.6 3.0 30.0 12.4 23.4 28.0 31.1z"/><path d="M36.0 31.1 51.6 23.4 61.0 30.0 52.4 18.6 34.0 26.9z"/><path d="M28.4 29.8 10.6 35.3 5.0 50.0 13.4 38.7 29.6 34.2z"/><path d="M34.4 34.2 50.6 38.7 59.0 50.0 53.4 35.3 35.6 29.8z"/><path d="M28.2 33.5 18.1 46.2 18.0 61.0 21.9 47.8 31.8 36.5z"/><path d="M32.2 36.5 42.1 47.8 46.0 61.0 45.9 46.2 35.8 33.5z"/><path d="M32 14l10 14-10 20-10-20z"/></g></svg><div><b>F75</b><span>AULA</span></div></div>
+    <nav id="tabs">
+      <button data-tab="light" class="active"><i>01</i><span data-i18n="nav.light"></span></button>
+      <button data-tab="keys"><i>02</i><span data-i18n="nav.keys"></span></button>
+      <button data-tab="macros"><i>03</i><span data-i18n="nav.macros"></span></button>
+      <button data-tab="profiles"><i>04</i><span data-i18n="nav.profiles"></span></button>
+    </nav>
+    <div class="langs" id="langs">
+      <button data-lang="ru" data-i18n-title="lang.ru"><svg viewBox="0 0 9 6" preserveAspectRatio="none"><rect width="9" height="2" fill="#fff"/><rect y="2" width="9" height="2" fill="#0039a6"/><rect y="4" width="9" height="2" fill="#d52b1e"/></svg></button>
+      <button data-lang="en" data-i18n-title="lang.en"><svg viewBox="0 0 60 40" preserveAspectRatio="none"><rect width="60" height="40" fill="#012169"/><path d="M0 0l60 40M60 0L0 40" stroke="#fff" stroke-width="8"/><path d="M0 0l60 40M60 0L0 40" stroke="#c8102e" stroke-width="3"/><path d="M30 0v40M0 20h60" stroke="#fff" stroke-width="13"/><path d="M30 0v40M0 20h60" stroke="#c8102e" stroke-width="7"/></svg></button>
+    </div>
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText"></span></div>
+  </aside>
+
+  <main>
+    <div class="history">
+      <button class="btn" id="undo" data-i18n-title="history.undoTitle" disabled><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
+      <button class="btn" id="redo" data-i18n-title="history.redoTitle" disabled><svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
+    </div>
+    <div class="offline" id="banner" hidden>
+      <h1 data-i18n="offline.title"></h1>
+      <p id="bannerText"></p>
+      <button class="btn primary" id="retry" data-i18n="offline.retry"></button>
+    </div>
+
+    <div id="app" hidden>
+      <!-- lighting -->
+      <section data-view="light">
+        <div class="head"><h1 data-i18n="nav.light"></h1></div>
+        <div class="stage"><div class="plate"><div class="kb" id="kbLight"></div></div></div>
+        <div class="inspector">
+          <div class="pane"><div id="modes"></div></div>
+          <div class="pane" id="effectPanel">
+            <h2 id="effectTitle"></h2>
+            <p class="hint" id="lightHint" style="margin:-4px 0 16px" hidden></p>
+            <div class="field"><div class="label"><span data-i18n="light.brightness"></span><span id="brightnessOut"></span></div><input type="range" id="brightness" min="0" max="9" step="1"></div>
+            <div class="field" id="rowSpeed"><div class="label"><span data-i18n="light.speed"></span><span id="speedOut"></span></div><input type="range" id="speed" min="0" max="4" step="1"></div>
+            <div class="field" id="rowColor">
+              <div class="label"><span data-i18n="light.color"></span><span id="colorOut"></span></div>
+              <div class="swatches" id="swatches"></div>
+              <p class="hint" id="colorHint"></p>
+              <button class="btn" id="copyPalette" style="margin-top:14px" data-i18n="light.copy"></button>
+            </div>
+          </div>
+          <div class="pane" id="pickerPane"><div id="effectPicker"></div></div>
+          <div class="pane span2" id="paintPanel">
+            <h2 data-i18n="light.custom"></h2>
+            <div class="paint">
+              <div id="paintPicker"></div>
+              <div class="stack">
+                <button class="btn" id="fillAll" data-i18n="paint.fill"></button>
+                <button class="btn" id="clearAll" data-i18n="paint.clear"></button>
+                <button class="btn" id="picLoad" data-i18n="paint.picture"></button>
+                <input type="file" id="picFile" accept="image/*" hidden>
+                <div id="picBox" hidden>
+                  <canvas id="picCanvas" width="640" height="250"></canvas>
+                  <div class="label" style="margin-top:12px"><span data-i18n="paint.saturation"></span><span id="picSatOut"></span></div>
+                  <input type="range" id="picSat" min="100" max="300" step="10" value="150">
+                  <p class="hint" data-i18n="paint.picHint"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pane span2" id="offPanel">
+            <h2 data-i18n="light.offTitle"></h2>
+            <p class="hint" style="margin:0" data-i18n="light.offHint"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- key map -->
+      <section data-view="keys" hidden>
+        <div class="head">
+          <h1 data-i18n="nav.keys"></h1>
+          <span class="grow"></span>
+          <button class="btn active" data-layer="0" data-i18n="keys.layer0"></button>
+          <button class="btn" data-layer="1" data-i18n="keys.layer1"></button>
+          <button class="btn quiet" id="resetLayer" data-i18n="keys.reset"></button>
+        </div>
+        <div class="stage"><div class="plate"><div class="kb" id="kbKeys"></div></div></div>
+        <p class="hint" id="remapEmpty" style="margin:0" data-i18n="keys.none"></p>
+        <div class="inspector two" id="remapBody" hidden>
+          <div class="pane">
+            <h2 id="remapTitle"></h2>
+            <p class="now" id="remapNow"></p>
+            <div class="bar" style="margin-bottom:0">
+              <button class="btn" id="remapDefault" data-i18n="keys.default"></button>
+              <button class="btn" id="remapNone" data-i18n="keys.disable"></button>
+            </div>
+            <div class="field" id="macroPlay" style="margin:18px 0 0" hidden>
+              <div class="label"><span data-i18n="play.title"></span></div>
+              <div class="bar" style="margin-bottom:0">
+                <select id="macroMode">
+                  <option value="once" data-i18n="play.once"></option>
+                  <option value="times" data-i18n="play.times"></option>
+                  <option value="hold" data-i18n="play.hold"></option>
+                  <option value="toggle" data-i18n="play.toggle"></option>
+                </select>
+                <input type="number" id="macroCount" min="2" max="255" value="2" style="width:80px" data-i18n-title="play.count">
+              </div>
+            </div>
+            <div class="mods" id="mods"><span data-i18n="keys.with"></span></div>
+            <p class="hint" id="modsHint" data-i18n="keys.modsHint" hidden></p>
+          </div>
+          <div class="pane">
+            <input type="text" id="search" data-i18n-placeholder="keys.search" style="width:100%">
+            <div class="options" id="options"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- macros -->
+      <section data-view="macros" hidden>
+        <div class="head"><h1 data-i18n="nav.macros"></h1></div>
+        <div class="notice">
+          <b data-i18n="notice.title"></b><span data-i18n="notice.text"></span>
+        </div>
+        <div class="inspector two" style="grid-template-columns:250px minmax(0,1fr)">
+          <div class="pane">
+            <h2 data-i18n="macros.list"></h2>
+            <div class="vlist" id="macroList"></div>
+            <button class="btn" id="macroNew" style="margin-top:14px" data-i18n="macros.new"></button>
+            <p class="hint" id="macroMemory"></p>
+          </div>
+          <div class="pane" id="macroEditor">
+            <div class="bar">
+              <input type="text" id="macroName" maxlength="30" data-i18n-placeholder="macros.name" style="flex:1;min-width:180px">
+              <button class="btn primary" id="macroSave" data-i18n="macros.save"></button>
+              <button class="btn quiet" id="macroDelete" data-i18n="common.delete"></button>
+            </div>
+            <div class="bar">
+              <button class="btn" id="macroRecord"></button>
+              <button class="btn" id="macroAddKey" data-i18n="macros.addKey"></button>
+              <button class="btn quiet" id="macroClear" data-i18n="macros.clear"></button>
+            </div>
+            <p class="hint" id="macroHint" style="margin:0 0 12px"></p>
+            <div id="macroEvents"></div>
+          </div>
+          <div class="pane" id="macroEmpty">
+            <h2 data-i18n="macros.noneTitle"></h2>
+            <p class="hint" style="margin:0" data-i18n="macros.noneHint"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- profiles -->
+      <section data-view="profiles" hidden>
+        <div class="head"><h1 data-i18n="nav.profiles"></h1></div>
+        <ul class="profiles" id="profileList"></ul>
+        <div class="bar" style="max-width:760px">
+          <input type="text" id="profileName" data-i18n-placeholder="profiles.name" maxlength="40" style="flex:1;min-width:200px">
+          <button class="btn primary" id="profileSave" data-i18n="profiles.save"></button>
+        </div>
+        <p class="hint" data-i18n="profiles.sub"></p>
+      </section>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const el = (tag, props = {}, text) => { const e = Object.assign(document.createElement(tag), props); if (text != null) e.textContent = text; return e; };
+const BOOT = null/*STATE*/;   // the server puts the current state here so the page opens already filled in
+const VIEWS = ['light', 'keys', 'macros', 'profiles'];
+const STRINGS = null/*STRINGS*/;   // every user-facing text lives in strings.json; the server puts it here
+let LANG = (() => {
+  const asked = new URLSearchParams(location.search).get('lang'); if (asked && STRINGS[asked]) return asked;   // ?lang=en
+  try { const saved = localStorage.getItem('f75-lang'); if (saved && STRINGS[saved]) return saved; } catch (e) {}
+  return (navigator.language || 'en').toLowerCase().startsWith('ru') ? 'ru' : 'en';
+})();
+function t(key, vars) {
+  const text = STRINGS[LANG][key] ?? STRINGS.ru[key] ?? key;
+  return vars ? text.replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m) : text;
+}
+const L = label => typeof label === 'string' && label[0] === '@' ? t(label.slice(1)) : label;   // "@key" -> text
+const presetName = e => t('preset.' + e.name);
+let S = null, view = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'light', layer = 0, selectedKey = null;
+
+/* ---------- server ---------- */
+const pending = new Map(); let busy = false;
+// One request at a time; while one is in flight only the latest per key is kept.
+function send(key, path, body, done) { pending.set(key, { path, body, done }); pump(); }
+async function pump() {
+  if (busy) return;
+  busy = true;
+  while (pending.size) {
+    const [key, { path, body, done }] = pending.entries().next().value;
+    pending.delete(key);
+    try {
+      const r = await fetch('/api/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Lang': LANG }, body: JSON.stringify(body) });
+      const j = await r.json();
+      if (!r.ok) { toast(j.error || t('err.generic')); await load(); }
+      else { if (!pending.size) setState(j); if (typeof done === 'function') done(); else if (done) toast(done); }
+    } catch (e) { toast(t('err.noServer')); }
+  }
+  busy = false;
+}
+async function load() {
+  try { setState(await (await fetch('/api/state', { headers: { 'X-Lang': LANG } })).json()); }
+  catch (e) { setState({ connected: false, error: t('err.noServer'), profiles: [] }); }
+}
+let toastTimer;
+function toast(msg, sticky) {   // a sticky message stays until the next one or hideToast()
+  const box = $('toast'); box.textContent = msg; box.classList.add('show'); clearTimeout(toastTimer);
+  if (!sticky) toastTimer = setTimeout(hideToast, 3500);
+}
+function hideToast() { clearTimeout(toastTimer); $('toast').classList.remove('show'); }
+
+/* ---------- colour from anywhere on the screen ---------- */
+let stopScreenPick = null;
+// Chromium has a native eyedropper. Elsewhere the program reports the colour under the mouse pointer,
+// and the choice is confirmed from the keyboard so that nothing on the screen gets clicked.
+async function pickFromScreen(onPick, onPreview, button) {
+  button.blur();
+  if (stopScreenPick) return stopScreenPick();   // the same button cancels
+  if (window.EyeDropper) {
+    try { onPick((await new EyeDropper().open()).sRGBHex.slice(1).toLowerCase()); } catch (e) { /* cancelled */ }
+    return;
+  }
+  let last = null;
+  const finish = ok => {
+    clearInterval(timer); window.removeEventListener('keydown', onKey, true);
+    button.classList.remove('active'); stopScreenPick = null; hideToast(); onPreview(null);
+    if (ok && last) onPick(last);
+  };
+  const onKey = ev => {
+    if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); finish(true); }
+    else if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+  };
+  const timer = setInterval(async () => {
+    try { const j = await (await fetch('/api/cursor-color')).json(); if (stopScreenPick && j.rgb) { last = j.rgb; onPreview(last); } } catch (e) { /* program gone */ }
+  }, 90);
+  window.addEventListener('keydown', onKey, true);
+  button.classList.add('active'); stopScreenPick = () => finish(false);
+  toast(t('picker.screenHint'), true);
+}
+
+/* ---------- colour picker ---------- */
+// tuned by eye on the LEDs: warm colours and pinks need more saturation than greens and blues
+const PRESETS = ['ff2018', 'ff6010', 'ffa010', 'ffd810', 'a0f020', '40e050', '40e0a0', '40e0e8',
+  '40b0ff', '4080ff', '4050f0', '8850f0', 'e828f0', 'ff2878', 'ffffff', '000000'];
+function hsv2hex(h, s, v) {
+  const f = n => { const k = (n + h / 60) % 6; return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1)))).toString(16).padStart(2, '0'); };
+  return f(5) + f(3) + f(1);
+}
+function hex2hsv(hex) {
+  const [r, g, b] = [0, 2, 4].map(i => parseInt(hex.substr(i, 2), 16) / 255), max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+  let h = 0;
+  if (d) h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, max ? d / max : 0, max];
+}
+function createPicker(root, onChange) {
+  let h = 0, s = 1, v = 1, hex = 'ff0000', dragging = false;
+  const sv = el('div', { className: 'sv' }), thumb = el('i'), hue = el('input', { type: 'range', className: 'hue', min: 0, max: 359 });
+  const chip = el('span', { className: 'chip' }), text = el('input', { type: 'text', maxLength: 7, spellcheck: false });
+  hue.dataset.i18nTitle = 'picker.hue'; text.dataset.i18nTitle = 'picker.hex';
+  const line = el('div', { className: 'line' }), presets = el('div', { className: 'swatches' });
+  const eye = el('button', { className: 'btn mini' }); eye.dataset.i18n = 'picker.screen';
+  sv.append(thumb); line.append(chip, text, eye); root.classList.add('picker'); root.append(sv, hue, line, presets);
+  const draw = () => {
+    sv.style.setProperty('--h', h); thumb.style.left = s * 100 + '%'; thumb.style.top = (1 - v) * 100 + '%'; thumb.style.background = '#' + hex;
+    chip.style.background = '#' + hex; hue.value = h; if (document.activeElement !== text) text.value = '#' + hex;
+  };
+  const commit = () => { hex = hsv2hex(h, s, v); draw(); onChange(hex); };
+  const fromPointer = e => {
+    const r = sv.getBoundingClientRect();
+    s = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); v = 1 - Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)); commit();
+  };
+  sv.addEventListener('pointerdown', e => { dragging = true; sv.setPointerCapture(e.pointerId); fromPointer(e); });
+  sv.addEventListener('pointermove', e => { if (dragging) fromPointer(e); });
+  sv.addEventListener('pointerup', () => { dragging = false; });
+  hue.oninput = () => { h = +hue.value; commit(); };
+  const setHex = (value, notify) => {
+    if (value === hex) return;
+    const [nh, ns, nv] = hex2hsv(value); if (ns && nv) h = nh; s = ns; v = nv; hex = value; draw(); if (notify) onChange(hex);
+  };
+  text.oninput = () => { const m = /^#?([0-9a-f]{6})$/i.exec(text.value.trim()); if (m) setHex(m[1].toLowerCase(), true); };
+  text.onblur = draw;
+  eye.onclick = () => pickFromScreen(value => setHex(value, true), value => { chip.style.background = '#' + (value || hex); }, eye);
+  for (const p of PRESETS) { const b = el('button', { className: 'swatch small', title: '#' + p }); b.style.background = '#' + p; b.onclick = () => setHex(p, true); presets.append(b); }
+  draw();
+  return { get: () => hex, set: value => { if (!dragging) setHex(value, false); } };
+}
+
+/* ---------- helpers ---------- */
+const CAP = { backspace: '⌫', delete: 'Del', capslock: 'Caps', lshift: 'Shift', rshift: 'Shift', lctrl: 'Ctrl', rctrl: 'Ctrl', lwin: 'Win', lalt: 'Alt', up: '↑', down: '↓', left: '←', right: '→', wheel: '◎', space: '', enter: 'Enter ↵', tab: 'Tab' };
+const KEY_NAME = { esc: 'Esc', backspace: 'Backspace', delete: 'Delete', tab: 'Tab', capslock: 'Caps Lock', enter: 'Enter', lshift: '@keyname.lshift', rshift: '@keyname.rshift',
+  lctrl: '@keyname.lctrl', rctrl: '@keyname.rctrl', lwin: 'Win', lalt: '@keyname.lalt', space: '@keyname.space', fn: 'Fn', up: '@keyname.up', down: '@keyname.down',
+  left: '@keyname.left', right: '@keyname.right', pgup: 'Page Up', pgdn: 'Page Down', end: 'End' };
+const keyLabel = name => S.layout.find(k => k.name === name).label;
+const keyName = name => L(KEY_NAME[name] || keyLabel(name));
+const textOn = hex => { const [r, g, b] = [0, 2, 4].map(i => parseInt(hex.substr(i, 2), 16)); return (r * 299 + g * 587 + b * 114) / 1000 > 140 ? '#2a211b' : '#fff8f0'; };
+const effect = id => S.effects.find(e => e.id === id);
+
+function buildKeyboard(box, onDown, onEnter) {
+  box.replaceChildren();
+  for (const k of S.layout) {
+    const d = el('div', { className: 'key' + (k.name === 'wheel' ? ' knob' : '') });
+    d.dataset.key = k.name;
+    // positions come in key units; GAP is the space between neighbouring caps
+    const [W, H] = S.layoutSize, GAP = 0.09;
+    d.style.left = (k.x + GAP / 2) / W * 100 + '%'; d.style.top = (k.y + GAP / 2) / H * 100 + '%';
+    d.style.width = (k.w - GAP) / W * 100 + '%'; d.style.height = (1 - GAP) / H * 100 + '%';
+    d.addEventListener('pointerdown', e => { e.preventDefault(); d.releasePointerCapture?.(e.pointerId); onDown(k.name); });
+    if (onEnter) d.addEventListener('pointerenter', () => onEnter(k.name));
+    box.append(d);
+  }
+}
+
+/* ---------- lighting ---------- */
+let painting = false, paintBatch = {};
+const effectPicker = createPicker($('effectPicker'), rgb => {
+  const e = effect(S.mode); if (!e || e.color > 6) return;
+  e.palette[e.color] = rgb; renderLightKeyboard();
+  const sw = $('swatches').children[e.color]; if (sw) sw.style.background = '#' + rgb;
+  $('colorOut').textContent = '#' + rgb;
+  send('palette', 'palette', { id: e.id, index: e.color, rgb });
+});
+const paintPicker = createPicker($('paintPicker'), () => {});
+paintPicker.set('ff6010');
+
+function flushPaint() {
+  if (!Object.keys(paintBatch).length) return;
+  const colors = paintBatch; paintBatch = {};
+  // merge with anything not yet sent so no stroke is lost
+  const prev = pending.get('keys'); send('keys', 'keys', { colors: Object.assign(prev ? prev.body.colors : {}, colors) });
+}
+function paint(name) {
+  if (name === 'wheel' || S.mode !== S.customMode) return;
+  const hex = paintPicker.get();
+  if (S.keys[name] === hex) return;
+  S.keys[name] = hex; paintBatch[name] = hex; renderLightKeyboard(); flushPaint();
+}
+window.addEventListener('pointerup', () => { painting = false; });
+
+function renderLightKeyboard() {
+  const custom = S.mode === S.customMode, e = effect(S.mode);
+  const level = e ? 0.3 + 0.7 * e.brightness / 9 : 1, lit = e && e.brightness && !e.interactive;
+  for (const d of $('kbLight').children) {
+    const name = d.dataset.key;
+    d.textContent = CAP[name] ?? keyLabel(name);
+    d.classList.toggle('noled', name === 'wheel');
+    if (name === 'wheel') { d.title = t('light.knob'); continue; }
+    let bg = '', fg = '', glow = '';
+    const hex = custom ? S.keys[name] : lit && e.hasColor && e.color < 7 ? e.palette[e.color] : null;
+    if (hex && hex !== '000000') { bg = '#' + hex; fg = textOn(hex); glow = '0 0 16px #' + hex + '70'; }
+    else if (lit && !hex) {   // the keyboard cycles through colours itself: hint at it with a spectrum
+      const hue = Math.round(S.layout.find(k => k.name === name).x / S.layoutSize[0] * 300);
+      bg = 'hsl(' + hue + ' 100% 55%)'; fg = '#0b0b0c'; glow = '0 0 16px hsl(' + hue + ' 100% 55% / .45)';
+    }
+    d.style.background = bg; d.style.color = fg; d.style.boxShadow = glow; d.style.borderColor = bg ? 'transparent' : '';
+    d.style.opacity = bg && !custom ? level : 1;
+  }
+  $('lightHint').hidden = !(e && e.interactive); $('lightHint').textContent = t('hint.interactive');
+}
+
+function renderLight() {
+  const box = $('modes');
+  if (!box.children.length) {
+    const group = (title, items) => {
+      const row = el('div', { className: 'chips' });
+      for (const [id, name] of items) {
+        const b = el('button', {}, name); b.dataset.id = id;
+        b.onclick = () => { S.mode = id; render(); send('mode', 'mode', { id }); };
+        row.append(b);
+      }
+      box.append(el('h3', {}, title), row);
+    };
+    group(t('group.manual'), [[S.customMode, t('light.custom')], [0, t('preset.off')]]);
+    group(t('group.presets'), S.effects.filter(e => !e.interactive).map(e => [e.id, presetName(e)]));
+    group(t('group.interactive'), S.effects.filter(e => e.interactive).map(e => [e.id, presetName(e)]));
+  }
+  for (const b of box.querySelectorAll('button')) b.classList.toggle('active', +b.dataset.id === S.mode);
+  renderLightKeyboard();
+
+  const e = effect(S.mode);
+  $('effectPanel').hidden = !e; $('pickerPane').hidden = !e; $('paintPanel').hidden = S.mode !== S.customMode; $('offPanel').hidden = S.mode !== 0;
+  if (!e) return;
+  $('effectTitle').textContent = presetName(e);
+  for (const f of ['brightness', 'speed']) {
+    if (document.activeElement !== $(f)) $(f).value = e[f];
+    $(f).style.setProperty('--p', e[f] / +$(f).max * 100 + '%');   // filled part of the track
+  }
+  $('brightnessOut').textContent = t('brightness.' + e.brightness);
+  $('speedOut').textContent = t('light.step', { n: e.speed + 1 });
+  $('rowSpeed').hidden = !e.hasSpeed; $('rowColor').hidden = !e.hasColor; $('effectPicker').hidden = !e.hasColor;
+  const sw = $('swatches'); sw.replaceChildren();
+  e.palette.forEach((hex, i) => {
+    const b = el('button', { className: 'swatch' + (e.color === i ? ' active' : ''), title: i ? t('swatch.n', { n: i + 1 }) : t('swatch.main') });
+    b.style.background = '#' + hex; b.onclick = () => setEffect({ color: i }); sw.append(b);
+  });
+  const rb = el('button', { className: 'swatch rainbow' + (e.color === 7 ? ' active' : ''), title: t('swatch.all') });
+  rb.onclick = () => setEffect({ color: 7 }); sw.append(rb);
+  const rainbow = e.color === 7;
+  $('colorOut').textContent = rainbow ? t('light.allColors') : '#' + e.palette[e.color];
+  $('colorHint').textContent = t(rainbow ? 'hint.rainbow' : 'hint.palette');
+  $('effectPicker').hidden = rainbow || !e.hasColor;
+  if (!rainbow) effectPicker.set(e.palette[e.color]);
+}
+function setEffect(change) {
+  const e = effect(S.mode); if (!e) return;
+  Object.assign(e, change); render();
+  const prev = pending.get('effect');
+  send('effect', 'effect', { ...(prev && prev.body.id === e.id ? prev.body : {}), id: e.id, ...change });
+}
+$('copyPalette').onclick = () => {
+  const e = effect(S.mode); if (!e) return;
+  if (!confirm(t('confirm.copy', { name: presetName(e) }))) return;
+  for (const o of S.effects) if (o.hasColor) o.palette = [...e.palette];
+  send('copyPalette', 'palette/copy', { id: e.id }, t('toast.copied'));
+};
+$('brightness').oninput = ev => setEffect({ brightness: +ev.target.value });
+$('speed').oninput = ev => setEffect({ speed: +ev.target.value });
+function fill(hex) { const colors = {}; for (const k in S.keys) { S.keys[k] = hex; colors[k] = hex; } render(); send('keys', 'keys', { colors }); }
+/* ---------- picture -> key colours ---------- */
+// The picture is cropped to the keyboard's proportions; every key takes the average colour of its patch.
+const pic = { img: null, zoom: 1, cx: 0.5, cy: 0.5, timer: 0 };
+function picCrop() {   // the part of the picture under the keyboard, in picture pixels; it may reach past the edges
+  const { img, zoom } = pic, [W, H] = S.layoutSize, ratio = W / H;
+  let w = img.width / img.height > ratio ? img.height * ratio : img.width, h = w / ratio;
+  w /= zoom; h /= zoom;
+  // zoomed in, the frame stays inside the picture; zoomed out, the picture stays inside the frame
+  const clamp = (v, half) => Math.max(Math.min(half, 1 - half), Math.min(Math.max(half, 1 - half), v));
+  pic.cx = clamp(pic.cx, w / 2 / img.width); pic.cy = clamp(pic.cy, h / 2 / img.height);
+  return [pic.cx * img.width - w / 2, pic.cy * img.height - h / 2, w, h];
+}
+function picDraw(apply) {
+  if (!pic.img) return;
+  const c = $('picCanvas'), ctx = c.getContext('2d', { willReadFrequently: true }), [sx, sy, sw] = picCrop();
+  const scale = c.width / sw, dx = -sx * scale, dy = -sy * scale, dw = pic.img.width * scale, dh = pic.img.height * scale;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, c.width, c.height);   // transparent areas mean "LED off", not the previous picture
+  ctx.drawImage(pic.img, dx, dy, dw, dh);
+  // where the picture does not reach, stretch its outermost pixels: those keys take the nearest colour
+  const x0 = Math.max(0, Math.ceil(dx) + (dx > 0)), x1 = Math.min(c.width, Math.floor(dx + dw) - (dx + dw < c.width));
+  const y0 = Math.max(0, Math.ceil(dy) + (dy > 0)), y1 = Math.min(c.height, Math.floor(dy + dh) - (dy + dh < c.height));
+  if (x1 > x0 && y1 > y0) {
+    if (x0 > 0) ctx.drawImage(c, x0, y0, 1, y1 - y0, 0, y0, x0, y1 - y0);
+    if (x1 < c.width) ctx.drawImage(c, x1 - 1, y0, 1, y1 - y0, x1, y0, c.width - x1, y1 - y0);
+    if (y0 > 0) ctx.drawImage(c, 0, y0, c.width, 1, 0, 0, c.width, y0);
+    if (y1 < c.height) ctx.drawImage(c, 0, y1 - 1, c.width, 1, 0, y1, c.width, c.height - y1);
+  }
+  $('picSatOut').textContent = $('picSat').value + '%';
+  $('picSat').style.setProperty('--p', ($('picSat').value - 100) / 2 + '%');
+  clearTimeout(pic.timer);   // write to the keyboard once the picture has stopped moving
+  if (apply) pic.timer = setTimeout(picApply, 250);
+}
+function picApply() {
+  if (!pic.img || S.mode !== S.customMode) return;
+  const c = $('picCanvas'), data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  const [W, H] = S.layoutSize, boost = $('picSat').value / 100, colors = {};
+  for (const k of S.layout) {
+    if (k.name === 'wheel') continue;
+    const x0 = Math.floor(k.x / W * c.width), x1 = Math.ceil((k.x + k.w) / W * c.width);
+    const y0 = Math.floor(k.y / H * c.height), y1 = Math.ceil((k.y + 1) / H * c.height);
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = (y * c.width + x) * 4; r += data[i]; g += data[i + 1]; b += data[i + 2]; n++; }
+    const avg = [r, g, b].map(v => Math.round(v / n).toString(16).padStart(2, '0')).join('');
+    const [h, s, v] = hex2hsv(avg);   // LEDs wash pale colours out to white, hence the saturation boost
+    colors[k.name] = hsv2hex(h, Math.min(1, s * boost), v);
+  }
+  Object.assign(S.keys, colors); renderLightKeyboard(); send('keys', 'keys', { colors });
+}
+$('picLoad').onclick = () => $('picFile').click();
+$('picFile').onchange = () => {
+  const file = $('picFile').files[0]; if (!file) return;
+  const img = new Image();
+  img.onload = () => { Object.assign(pic, { img, zoom: 1, cx: 0.5, cy: 0.5 }); $('picBox').hidden = false; picDraw(true); };
+  img.onerror = () => toast(t('paint.picError'));
+  img.src = URL.createObjectURL(file); $('picFile').value = '';
+};
+$('picSat').oninput = () => picDraw(true);
+$('picCanvas').addEventListener('pointerdown', e => { $('picCanvas').setPointerCapture(e.pointerId); pic.drag = [e.clientX, e.clientY]; });
+$('picCanvas').addEventListener('pointermove', e => {
+  if (!pic.drag || !pic.img) return;
+  const box = $('picCanvas').getBoundingClientRect(), [, , w, h] = picCrop();
+  pic.cx -= (e.clientX - pic.drag[0]) / box.width * w / pic.img.width; pic.cy -= (e.clientY - pic.drag[1]) / box.height * h / pic.img.height;
+  pic.drag = [e.clientX, e.clientY]; picDraw(true);
+});
+$('picCanvas').addEventListener('pointerup', () => { pic.drag = null; });
+$('picCanvas').addEventListener('wheel', e => { e.preventDefault(); pic.zoom = Math.max(0.5, Math.min(8, pic.zoom * Math.exp(-e.deltaY * 0.0015))); picDraw(true); }, { passive: false });
+
+$('fillAll').onclick = () => fill(paintPicker.get());
+$('clearAll').onclick = () => fill('000000');
+
+/* ---------- key map ---------- */
+// labels that start with @ are keys of the strings file
+const MODS = [['Ctrl', 1, '@mod.lctrl', 'Ctrl'], ['Shift', 2, '@mod.lshift', 'Shift'], ['Alt', 4, '@mod.lalt', 'Alt'], ['Win', 8, 'Win', 'Win'],
+  ['@mod.rctrl', 16, '@mod.rctrl', 'Ctrl'], ['@mod.rshift', 32, '@mod.rshift', 'Shift'], ['@mod.ralt', 64, '@mod.ralt', 'Alt'], ['@mod.rwin', 128, '@mod.rwin', 'Win']];
+const GROUPS = [
+  ['@group.letters', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((c, i) => [c, 4 + i])],
+  ['@group.digits', '1234567890'.split('').map((c, i) => [c, 0x1e + i])],
+  ['@group.fkeys', Array.from({ length: 12 }, (_, i) => ['F' + (i + 1), 0x3a + i]).concat(Array.from({ length: 12 }, (_, i) => ['F' + (i + 13), 0x68 + i]))],
+  ['@group.control', [['Esc', 0x29], ['Tab', 0x2b], ['Caps Lock', 0x39], ['Enter', 0x28], ['Backspace', 0x2a], ['@key.space', 0x2c], ['@key.menu', 0x65], ['Print Screen', 0x46], ['Scroll Lock', 0x47], ['Pause', 0x48]]],
+  ['@group.nav', [['Insert', 0x49], ['Delete', 0x4c], ['Home', 0x4a], ['End', 0x4d], ['Page Up', 0x4b], ['Page Down', 0x4e], ['↑', 0x52], ['↓', 0x51], ['←', 0x50], ['→', 0x4f]]],
+  ['@group.symbols', [['-', 0x2d], ['=', 0x2e], ['[', 0x2f], [']', 0x30], ['\\', 0x31], [';', 0x33], ["'", 0x34], ['`', 0x35], [',', 0x36], ['.', 0x37], ['/', 0x38]]],
+];
+const MEDIA = [['@media.play', 0xcd], ['@media.next', 0xb5], ['@media.prev', 0xb6], ['@media.stop', 0xb7], ['@media.mute', 0xe2],
+  ['@media.volup', 0xe9], ['@media.voldown', 0xea], ['@media.calc', 0x192], ['@media.mail', 0x18a], ['@media.home', 0x223], ['@media.explorer', 0x194]];
+// built-in keyboard functions seen in the factory key map
+const BUILTIN = { '08030100': '@builtin.brighter', '08030200': '@builtin.dimmer', '08040100': '@builtin.faster', '08040200': '@builtin.slower',
+  '08000000': '@builtin.next', '07000001': '@builtin.winlock', '0d000000': 'Fn' };
+// shorter captions for the key caps on the diagram, by HID usage
+const ON_CAP = { 0x2a: '⌫', 0x39: 'Caps', 0x4b: 'PgUp', 0x4e: 'PgDn', 0x46: 'PrtSc', 0x47: 'ScrLk', 0x49: 'Ins', 0x4c: 'Del', 0x2c: '' };
+const USAGE = new Map(GROUPS.flatMap(g => g[1]).map(([n, u]) => [u, n]));
+const h2 = n => n.toString(16).padStart(2, '0'), h4 = n => n.toString(16).padStart(4, '0');
+function describe(code, short) {
+  if (code === '00000000') return short ? '' : t('desc.nothing');
+  if (BUILTIN[code]) return short && code !== '0d000000' ? '✦' : L(BUILTIN[code]);
+  if (isMacro(code)) {
+    if (short) return '▶';
+    const m = S.macros[parseInt(code.slice(6), 16)], play = macroPlay(code);
+    const how = play.mode === 'once' ? '' : t('desc.' + play.mode, { n: play.count });
+    return (m ? t('desc.macro', { name: m.name }) : t('desc.macroGone')) + how;
+  }
+  const type = code.slice(0, 2), mods = parseInt(code.slice(2, 4), 16), u = parseInt(code.slice(4), 16);
+  if (type === '00') {
+    const held = MODS.filter(m => mods & m[1]);
+    if (!u) return held.map(m => short ? m[3] : L(m[2])).join(' + ');
+    const name = USAGE.has(u) ? L(USAGE.get(u)) : t('desc.keyCode', { n: u });
+    return held.map(m => L(m[0])).concat(short ? ON_CAP[u] ?? name : name).join(' + ');
+  }
+  if (type === '02') { const m = MEDIA.find(m => m[1] === u); return short ? '♪' : m ? L(m[0]) : t('desc.mediaCode', { n: u }); }
+  return short ? '✦' : t('desc.service');
+}
+const isMacro = code => code.slice(0, 2) === '03';
+// key code of a macro: 03, repeat mode (1 = count times, 2 = until the next press, 4 = while held), count, macro number
+function macroPlay(code) {
+  const mode = parseInt(code.slice(2, 4), 16), count = parseInt(code.slice(4, 6), 16);
+  return { mode: mode === 2 ? 'toggle' : mode === 4 ? 'hold' : count > 1 ? 'times' : 'once', count: Math.max(count, 1) };
+}
+const macroCode = (index, mode, count) => '03' + (mode === 'toggle' ? '0201' : mode === 'hold' ? '0401' : '01' + h2(mode === 'times' ? count : 1)) + h2(index);
+const checkedMods = () => [...$('mods').querySelectorAll('input:checked')].reduce((a, c) => a | +c.value, 0);
+// a plain keyboard key (possibly with modifiers), the only kind that can take a modifier combo
+const isPlainKey = code => code.slice(0, 2) === '00' && parseInt(code.slice(4), 16) > 0;
+function setCode(code) {
+  if (!selectedKey) return;
+  S.keymap[layer][selectedKey] = code; render();
+  send('remap:' + layer + ':' + selectedKey, 'remap', { layer, key: selectedKey, code });
+}
+function renderOptions() {
+  const q = $('search').value.trim().toLowerCase(), box = $('options'); box.replaceChildren();
+  const group = (title, items, make) => {
+    items = items.filter(([n]) => L(n).toLowerCase().includes(q)); if (!items.length) return;
+    const g = el('div', { className: 'grid' });
+    for (const [n, v] of items) { const b = el('button', {}, L(n)); b.onclick = () => setCode(make(v)); g.append(b); }
+    box.append(el('h3', {}, L(title)), g);
+  };
+  for (const [title, items] of GROUPS) group(title, items, u => '00' + h2(checkedMods()) + '00' + h2(u));
+  group('Ctrl, Shift, Alt, Win', MODS.map(m => [m[2], m[1]]), m => '00' + h2(m) + '0000');
+  group('@group.media', MEDIA, u => '0200' + h4(u));
+  group('@group.macros', S.macros.map((m, i) => [' ' + m.name, i]), i => macroCode(i, 'once', 1));   // the space keeps a name from being read as a key
+  group('@group.special', Object.entries(BUILTIN).map(([c, n]) => [n, c]), c => c);
+  if (!box.children.length) box.append(el('p', { className: 'hint' }, t('keys.searchNone')));
+}
+const keyTitle = (name, fn) => name === 'wheel' ? t(fn ? 'keys.knobFn' : 'keys.knob') : t(fn ? 'keys.keyTitleFn' : 'keys.keyTitle', { name: keyName(name) });
+function renderKeys() {
+  const map = S.keymap[layer], def = S.defaults[layer];
+  for (const d of $('kbKeys').children) {
+    const name = d.dataset.key, code = map[name];
+    d.textContent = describe(code, true);
+    d.title = keyTitle(name, 0) + ' — ' + describe(code);
+    d.classList.toggle('changed', code !== def[name]);
+    d.classList.toggle('empty', code === '00000000');
+    d.classList.toggle('selected', name === selectedKey);
+  }
+  for (const b of document.querySelectorAll('[data-layer]')) b.classList.toggle('active', +b.dataset.layer === layer);
+  $('remapEmpty').hidden = !!selectedKey; $('remapBody').hidden = !selectedKey;
+  if (!selectedKey) return;
+  $('remapTitle').textContent = keyTitle(selectedKey, layer);
+  $('remapNow').textContent = describe(map[selectedKey]);
+  $('remapDefault').disabled = map[selectedKey] === def[selectedKey];
+  $('remapNone').disabled = map[selectedKey] === '00000000';
+  // the checkboxes always show the modifiers of the current assignment
+  const code = map[selectedKey], plain = isPlainKey(code), mods = plain ? parseInt(code.slice(2, 4), 16) : 0;
+  for (const c of $('mods').querySelectorAll('input')) { c.checked = !!(mods & +c.value); c.disabled = !plain; }
+  $('modsHint').hidden = plain || isMacro(code);
+  $('macroPlay').hidden = !isMacro(code);
+  if (isMacro(code)) {
+    const play = macroPlay(code);
+    $('macroMode').value = play.mode; $('macroCount').hidden = play.mode !== 'times';
+    if (document.activeElement !== $('macroCount')) $('macroCount').value = Math.max(play.count, 2);
+  }
+}
+function setMacroPlay() {
+  const code = S.keymap[layer][selectedKey]; if (!isMacro(code)) return;
+  const count = Math.max(2, Math.min(255, +$('macroCount').value || 2));
+  setCode(macroCode(parseInt(code.slice(6), 16), $('macroMode').value, count));
+}
+$('macroMode').onchange = setMacroPlay; $('macroCount').oninput = setMacroPlay;
+for (const [name, bit] of MODS.slice(0, 4)) {
+  const l = el('label'); const c = el('input', { type: 'checkbox', value: bit });
+  c.onchange = () => {
+    const code = S.keymap[layer][selectedKey];
+    // keep right-hand modifier bits, replace the four the checkboxes control
+    if (isPlainKey(code)) setCode('00' + h2((parseInt(code.slice(2, 4), 16) & 0xf0) | checkedMods()) + code.slice(4));
+  };
+  l.append(c, ' ' + name); $('mods').append(l);
+}
+$('search').oninput = renderOptions;
+$('remapDefault').onclick = () => setCode(S.defaults[layer][selectedKey]);
+$('remapNone').onclick = () => setCode('00000000');
+$('resetLayer').onclick = () => {
+  if (confirm(t('confirm.reset' + layer))) send('reset', 'remap/reset', { layer }, t('toast.reset'));
+};
+for (const b of document.querySelectorAll('[data-layer]')) b.onclick = () => { layer = +b.dataset.layer; render(); };
+
+/* ---------- macros ---------- */
+const MACRO_KEYS = GROUPS.flatMap(g => g[1]).concat(MODS.map((m, i) => [m[2], 0xe0 + i]));
+const MACRO_KEY_NAME = new Map(MACRO_KEYS.map(([n, u]) => [u, n]));
+// KeyboardEvent.code -> HID usage, for recording
+const CODE_USAGE = (() => {
+  const m = { Escape: 0x29, Tab: 0x2b, CapsLock: 0x39, Enter: 0x28, Backspace: 0x2a, Space: 0x2c, ContextMenu: 0x65, PrintScreen: 0x46, ScrollLock: 0x47, Pause: 0x48,
+    Insert: 0x49, Delete: 0x4c, Home: 0x4a, End: 0x4d, PageUp: 0x4b, PageDown: 0x4e, ArrowUp: 0x52, ArrowDown: 0x51, ArrowLeft: 0x50, ArrowRight: 0x4f,
+    Minus: 0x2d, Equal: 0x2e, BracketLeft: 0x2f, BracketRight: 0x30, Backslash: 0x31, Semicolon: 0x33, Quote: 0x34, Backquote: 0x35, Comma: 0x36, Period: 0x37, Slash: 0x38,
+    ControlLeft: 0xe0, ShiftLeft: 0xe1, AltLeft: 0xe2, MetaLeft: 0xe3, ControlRight: 0xe4, ShiftRight: 0xe5, AltRight: 0xe6, MetaRight: 0xe7 };
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach((c, i) => { m['Key' + c] = 4 + i; });
+  '1234567890'.split('').forEach((c, i) => { m['Digit' + c] = 0x1e + i; });
+  for (let i = 1; i <= 12; i++) m['F' + i] = 0x39 + i;
+  for (let i = 13; i <= 24; i++) m['F' + i] = 0x68 + i - 13;
+  return m;
+})();
+let draft = null, recording = false, lastEventAt = 0;   // draft: { index, name, events } being edited, index null for a new macro
+const cloneMacro = (m, index) => ({ index, name: m.name, events: m.events.map(e => ({ ...e })) });
+function openMacro(index) { stopRecording(); draft = index === null ? { index: null, name: '', events: [] } : cloneMacro(S.macros[index], index); render(); }
+function renderMacros() {
+  const list = $('macroList'); list.replaceChildren();
+  S.macros.forEach((m, i) => {
+    const b = el('button', { className: draft && draft.index === i ? 'active' : '' }, m.name); b.onclick = () => openMacro(i); list.append(b);
+  });
+  if (!S.macros.length) list.append(el('p', { className: 'hint', style: 'margin:0' }, t('macros.empty')));
+  const mem = S.macroMemory;
+  $('macroMemory').textContent = t('macros.memory', { p: Math.round(mem.used / mem.total * 100) });
+  if (draft && draft.index !== null && !S.macros[draft.index]) draft = null;
+  $('macroEditor').hidden = !draft; $('macroEmpty').hidden = !!draft;
+  if (!draft) return;
+  if (document.activeElement !== $('macroName')) $('macroName').value = draft.name;
+  $('macroDelete').hidden = draft.index === null;
+  $('macroRecord').textContent = t(recording ? 'macros.stop' : 'macros.record');
+  $('macroRecord').classList.toggle('recording', recording);
+  $('macroHint').textContent = t(recording ? 'macros.hintRec' : draft.events.length ? 'macros.hintEdit' : 'macros.hintEmpty');
+  const box = $('macroEvents'); box.replaceChildren();
+  draft.events.forEach((e, i) => {
+    const row = el('div', { className: 'ev' }); row.append(el('span', { className: 'n' }, i + 1));
+    if ('raw' in e) { row.append(el('span', {}, t('macros.mouse')), el('span', { className: 'hint', style: 'margin:0' }, t('macros.byVendor')), el('span')); }
+    else {
+      const act = el('select'); act.append(new Option(t('act.press'), '1'), new Option(t('act.release'), '0')); act.value = e.down ? '1' : '0';
+      act.onchange = () => { e.down = act.value === '1'; };
+      const key = el('select'); for (const [n, u] of MACRO_KEYS) key.append(new Option(L(n), u));
+      if (!MACRO_KEY_NAME.has(e.code)) key.append(new Option(t('desc.keyCode', { n: e.code }), e.code));
+      key.value = e.code; key.onchange = () => { e.code = +key.value; };
+      const delay = el('input', { type: 'number', min: 0, max: 1048575, value: e.delay, title: t('macros.delayTitle') });
+      delay.oninput = () => { e.delay = Math.max(0, Math.min(1048575, +delay.value || 0)); };
+      const d = el('span', { className: 'delay' }); d.append(t('macros.then'), delay, t('macros.ms'));
+      row.append(act, key, d);
+    }
+    const del = el('button', { title: t('macros.removeEvent') }, '×'); del.onclick = () => { draft.events.splice(i, 1); render(); };
+    row.append(del); box.append(row);
+  });
+}
+function recordKey(ev) {
+  if (!recording) return;
+  ev.preventDefault();
+  if (ev.repeat) return;
+  const code = CODE_USAGE[ev.code];
+  if (!code) return toast(t('toast.cantRecord'));
+  const now = performance.now();
+  if (draft.events.length) draft.events[draft.events.length - 1].delay = Math.min(1048575, Math.round(now - lastEventAt));
+  lastEventAt = now;
+  draft.events.push({ code, down: ev.type === 'keydown', delay: 20 });
+  renderMacros(); $('macroEvents').scrollTop = 1e6;
+}
+function stopRecording() { recording = false; }
+window.addEventListener('keydown', recordKey, true); window.addEventListener('keyup', recordKey, true);
+$('macroNew').onclick = () => openMacro(null);
+$('macroName').oninput = () => { if (draft) draft.name = $('macroName').value; };
+$('macroRecord').onclick = () => { recording = !recording; lastEventAt = performance.now(); $('macroRecord').blur(); render(); };
+$('macroAddKey').onclick = () => { draft.events.push({ code: 4, down: true, delay: 30 }, { code: 4, down: false, delay: 30 }); render(); $('macroEvents').scrollTop = 1e6; };
+$('macroClear').onclick = () => { draft.events = []; render(); };
+$('macroSave').onclick = () => {
+  stopRecording();
+  const name = draft.name.trim(); if (!name) return toast(t('toast.needName'));
+  if (!draft.events.length) return toast(t('toast.needEvents'));
+  const index = draft.index;
+  send('macro', 'macro/save', { index, macro: { name, events: draft.events } }, () => {
+    if (draft && draft.index === null) draft.index = S.macros.length - 1;   // a new macro is appended at the end
+    toast(t('toast.macroSaved', { name })); render();
+  });
+};
+$('macroDelete').onclick = () => {
+  if (!confirm(t('confirm.macroDelete', { name: draft.name }))) return;
+  const index = draft.index; draft = null;
+  send('macro', 'macro/delete', { index }, t('toast.macroDeleted'));
+};
+
+/* ---------- profiles ---------- */
+function renderProfiles() {
+  const ul = $('profileList'); ul.replaceChildren();
+  if (!S.profiles.length) ul.append(el('li', { className: 'hint' }, t('profiles.empty')));
+  for (const name of S.profiles) {
+    const li = el('li'); const load = el('button', { className: 'btn' }, t('profiles.apply')), del = el('button', { className: 'btn quiet' }, t('common.delete'));
+    load.onclick = () => send('profile', 'profiles/load', { name }, t('toast.profileOn', { name }));
+    del.onclick = () => { if (confirm(t('confirm.profileDelete', { name }))) send('profile', 'profiles/delete', { name }, t('toast.profileDeleted', { name })); };
+    li.append(el('span', {}, name), load, del); ul.append(li);
+  }
+}
+$('profileSave').onclick = () => {
+  const name = $('profileName').value.trim(); if (!name) return toast(t('toast.profileNeedName'));
+  if (S.profiles.includes(name) && !confirm(t('confirm.profileReplace', { name }))) return;
+  send('profile', 'profiles/save', { name }, t('toast.profileSaved', { name })); $('profileName').value = '';
+};
+
+/* ---------- shell ---------- */
+function setState(s) {
+  const first = !S || !S.connected;
+  if (s.connected || !S) S = s; else { S.connected = false; S.error = s.error; S.profiles = s.profiles || S.profiles; }
+  $('dot').classList.toggle('on', !!S.connected);
+  $('statusText').textContent = t(S.connected ? 'status.on' : 'status.off');
+  $('undo').disabled = !S.connected || !S.canUndo; $('redo').disabled = !S.connected || !S.canRedo;
+  $('banner').hidden = !!S.connected; $('bannerText').textContent = S.error || '';
+  $('app').hidden = !S.connected;
+  if (!S.connected) return;
+  if (first) {
+    buildKeyboard($('kbLight'), n => { painting = true; paint(n); }, n => { if (painting) paint(n); });
+    buildKeyboard($('kbKeys'), n => { selectedKey = n; render(); });
+    renderOptions();
+  }
+  render();
+}
+function render() {
+  if (!S || !S.connected) return;
+  for (const s of document.querySelectorAll('[data-view]')) s.hidden = s.dataset.view !== view;
+  for (const b of $('tabs').children) b.classList.toggle('active', b.dataset.tab === view);
+  if (view === 'light') renderLight(); else if (view === 'keys') renderKeys(); else if (view === 'macros') renderMacros(); else renderProfiles();
+}
+function applyLang() {
+  document.documentElement.lang = LANG;
+  for (const e of document.querySelectorAll('[data-i18n]')) e.textContent = t(e.dataset.i18n);
+  for (const e of document.querySelectorAll('[data-i18n-placeholder]')) e.placeholder = t(e.dataset.i18nPlaceholder);
+  for (const e of document.querySelectorAll('[data-i18n-title]')) e.title = t(e.dataset.i18nTitle);
+  for (const b of $('langs').children) b.classList.toggle('active', b.dataset.lang === LANG);
+  $('statusText').textContent = t(!S ? 'status.search' : S.connected ? 'status.on' : 'status.off');
+  $('modes').replaceChildren();   // preset buttons are built once, in the current language
+  if (S && S.connected) { renderOptions(); render(); }
+}
+for (const b of $('langs').children) b.onclick = () => {
+  LANG = b.dataset.lang; try { localStorage.setItem('f75-lang', LANG); } catch (e) {}
+  applyLang(); if (!S || !S.connected) load();   // the "not connected" text comes from the program
+};
+applyLang();
+for (const b of $('tabs').children) b.onclick = () => { stopRecording(); view = b.dataset.tab; history.replaceState(null, '', '#' + view); render(); };
+$('undo').onclick = () => send('history', 'undo', {});
+$('redo').onclick = () => send('history', 'redo', {});
+window.addEventListener('keydown', ev => {   // Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z, on any keyboard layout
+  if (!ev.ctrlKey || ev.altKey || recording || /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName) && ev.target.type !== 'range') return;
+  const redo = ev.code === 'KeyY' || ev.code === 'KeyZ' && ev.shiftKey;
+  if (!redo && ev.code !== 'KeyZ') return;
+  ev.preventDefault(); $(redo ? 'redo' : 'undo').click();
+});
+$('retry').onclick = () => send('refresh', 'refresh', {});
+setInterval(() => { if (S && !S.connected && !busy) load(); }, 3000);
+if (BOOT) setState(BOOT); else load();
+</script>
+</body>
+</html>

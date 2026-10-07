@@ -1,0 +1,11 @@
+# personal data read from one particular keyboard
+profiles/
+factory-cfg.bin
+factory-device.json
+
+# build output
+__pycache__/
+build/
+dist/
+*.spec
+*.exe

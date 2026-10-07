@@ -1,0 +1,43 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write   # only used to publish a release for v* tags
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Build AULA-F75.exe
+        run: >
+          pyinstaller --noconfirm --onefile --name AULA-F75 --icon icon.ico
+          --add-data "ui.html;." --add-data "strings.json;." f75.py
+
+      - name: Smoke test
+        run: dist\AULA-F75.exe --lang en modes
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AULA-F75
+          path: dist/AULA-F75.exe
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$env:TAG" dist/AULA-F75.exe --generate-notes
