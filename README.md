@@ -13,35 +13,66 @@ Russian and English.
 
 ## Requirements
 
-- Windows, the keyboard connected **by cable** and switched to USB mode (`258a:010c`).
+- The keyboard connected **by cable** and switched to USB mode (`258a:010c`).
   Bluetooth does not expose the configuration interface; the 2.4G dongle is untested.
-- Close the vendor application while this one is running.
+- Windows 10 or 11, or Linux. **The Linux version has only been run against an emulated keyboard**
+  (a USB/IP device with the same ids), not a real one yet — reports are welcome.
+- On Windows, close the vendor application while this one is running.
 
 ## Running
 
-Download `AULA-F75.exe` from the releases page and start it: a console window opens and the setup page
-appears in the browser at `http://127.0.0.1:7575/`. Close the console window to quit.
+Download `AULA-F75.exe` from the releases page and start it: the program opens in its own window.
+It needs the Microsoft Edge WebView2 runtime, which Windows 11 and up-to-date Windows 10 already have.
 
-From source (Python 3.10+, no third-party packages):
+### Linux
+
+Unpack `aula-f75-linux-x86_64.tar.gz` from the releases page, let your user access the keyboard, and start
+the program — it serves the setup page and opens it in the browser:
 
 ```
-python f75.py ui
+sudo cp 60-aula-f75.rules /etc/udev/rules.d/
+sudo udevadm control --reload
+# replug the cable, then:
+./aula-f75
 ```
+
+Picking a colour from the screen works only in Chromium-based browsers there.
+
+### From source
+
+Python 3.10+:
+
+```
+pip install -r requirements.txt
+python f75.py
+```
+
+`pywebview` is the only dependency and only the window needs it. `python f75.py ui` shows the same page
+in the browser instead and works without any packages.
 
 `python f75.py -h` lists the command-line commands (`mode`, `set`, `custom`, `save`, `load`, …);
-`--lang ru|en` selects the language.
+`--lang ru|en` selects the language. The `.exe` accepts the same commands when started from a terminal.
 
 Profiles are stored in the `profiles` folder next to the program.
 
 ## Building
 
+Windows:
+
 ```
-pip install pyinstaller
-pyinstaller --onefile --name AULA-F75 --icon icon.ico --add-data "ui.html;." --add-data "strings.json;." f75.py
+pip install pyinstaller -r requirements.txt
+pyinstaller --onefile --noconsole --name AULA-F75 --icon icon.ico --add-data "ui.html;." --add-data "strings.json;." f75.py
 ```
 
-The GitHub workflow in `.github/workflows/build.yml` does the same on every push and attaches the `.exe`
-to a release when a `v*` tag is pushed.
+Linux:
+
+```
+pip install pyinstaller
+pyinstaller --onefile --name aula-f75 --add-data "ui.html:." --add-data "strings.json:." f75.py
+```
+
+The GitHub workflow in `.github/workflows/build.yml` does both on every push and attaches the results to a
+release when a `v*` tag is pushed.
 
 ## Files
 

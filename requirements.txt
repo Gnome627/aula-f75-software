@@ -1,0 +1,2 @@
+# only needed for the program's own window; without it the page opens in the browser
+pywebview>=5

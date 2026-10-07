@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""AULA F75 lighting and key-map control over USB (wired mode, 258a:010c). Windows, stdlib only.
+"""AULA F75 lighting and key-map control over USB (wired mode, 258a:010c). Windows and Linux; stdlib only,
+pywebview is optional and gives the program its own window.
 
 Protocol (reverse-engineered from OemDrv.exe, class CDevG5KB):
   HID feature report, 520 bytes, on the vendor collection with FeatureReportByteLength == 520
@@ -20,10 +21,12 @@ Protocol (reverse-engineered from OemDrv.exe, class CDevG5KB):
               delay bits 16-19, [1:3] = delay ms (applied after the event), [3] = code.
               type 0 = key (HID usage), 1 = modifier (usage e0-e7), 2 = mouse button, 3-5 = mouse motion
 """
-import argparse, ctypes, ctypes.wintypes as wt, json, locale, re, sys, threading, time, pathlib
+import argparse, ctypes, ctypes.wintypes as wt, json, locale, os, re, sys, threading, time, pathlib
 
 VID, PID, REPORT_ID, REPORT_LEN = 0x258A, 0x010C, 6, 520
-DEVICE_ID = bytes.fromhex('0300000000cd')          # Psd from KB.ini
+# "Psd" from the vendor's KB.ini: the three-mode F75 (tested) and the wired-only one, whose KB.ini is otherwise
+# identical (accepted, but nobody has tried it yet)
+DEVICE_IDS = {bytes.fromhex('0300000000cd'), bytes.fromhex('0300000000e1')}
 SIGNATURE = b'\x5a\xa5'
 CFG_LEN, PALETTE_LEN, KEYS_LEN, KEYMAP_LEN, PLANE = 0x80, 0x200, 384, 0x200, 126
 MACRO_LEN, MACRO_NAME_MAX, MAX_DELAY = 0x1000, 30, 0xFFFFF
@@ -132,73 +135,130 @@ class F75Error(Exception):
         return self.text()
 
 
-hid = ctypes.WinDLL('hid'); sa = ctypes.WinDLL('setupapi'); k32 = ctypes.WinDLL('kernel32', use_last_error=True)
-class GUID(ctypes.Structure): _fields_ = [('a', wt.DWORD), ('b', wt.WORD), ('c', wt.WORD), ('d', ctypes.c_ubyte * 8)]
-class IFD(ctypes.Structure): _fields_ = [('cb', wt.DWORD), ('g', GUID), ('f', wt.DWORD), ('r', ctypes.c_void_p)]
-class ATTR(ctypes.Structure): _fields_ = [('Size', wt.ULONG), ('VID', wt.USHORT), ('PID', wt.USHORT), ('Ver', wt.USHORT)]
-class CAPS(ctypes.Structure): _fields_ = [('Usage', wt.USHORT), ('UsagePage', wt.USHORT), ('In', wt.USHORT), ('Out', wt.USHORT), ('Feat', wt.USHORT), ('res', wt.USHORT * 17), ('n', wt.USHORT * 10)]
-k32.CreateFileW.restype = ctypes.c_void_p
-k32.CreateFileW.argtypes = [wt.LPCWSTR, wt.DWORD, wt.DWORD, ctypes.c_void_p, wt.DWORD, wt.DWORD, ctypes.c_void_p]
-sa.SetupDiGetClassDevsW.restype = ctypes.c_void_p
-INVALID = ctypes.c_void_p(-1).value
+# --- access to the keyboard: feature reports of the vendor HID interface -------------------------------
+if sys.platform == 'win32':
+    hid = ctypes.WinDLL('hid'); sa = ctypes.WinDLL('setupapi'); k32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    class GUID(ctypes.Structure): _fields_ = [('a', wt.DWORD), ('b', wt.WORD), ('c', wt.WORD), ('d', ctypes.c_ubyte * 8)]
+    class IFD(ctypes.Structure): _fields_ = [('cb', wt.DWORD), ('g', GUID), ('f', wt.DWORD), ('r', ctypes.c_void_p)]
+    class ATTR(ctypes.Structure): _fields_ = [('Size', wt.ULONG), ('VID', wt.USHORT), ('PID', wt.USHORT), ('Ver', wt.USHORT)]
+    class CAPS(ctypes.Structure): _fields_ = [('Usage', wt.USHORT), ('UsagePage', wt.USHORT), ('In', wt.USHORT), ('Out', wt.USHORT), ('Feat', wt.USHORT), ('res', wt.USHORT * 17), ('n', wt.USHORT * 10)]
+    k32.CreateFileW.restype = ctypes.c_void_p
+    k32.CreateFileW.argtypes = [wt.LPCWSTR, wt.DWORD, wt.DWORD, ctypes.c_void_p, wt.DWORD, wt.DWORD, ctypes.c_void_p]
+    sa.SetupDiGetClassDevsW.restype = ctypes.c_void_p
+    INVALID = ctypes.c_void_p(-1).value
 
+    def find_path():
+        g = GUID(); hid.HidD_GetHidGuid(ctypes.byref(g))
+        h = ctypes.c_void_p(sa.SetupDiGetClassDevsW(ctypes.byref(g), None, None, 0x12))
+        i = 0
+        try:
+            while True:
+                d = IFD(); d.cb = ctypes.sizeof(IFD)
+                if not sa.SetupDiEnumDeviceInterfaces(h, None, ctypes.byref(g), i, ctypes.byref(d)):
+                    return None
+                i += 1
+                n = wt.DWORD()
+                sa.SetupDiGetDeviceInterfaceDetailW(h, ctypes.byref(d), None, 0, ctypes.byref(n), None)
+                buf = ctypes.create_string_buffer(n.value)
+                ctypes.cast(buf, ctypes.POINTER(wt.DWORD))[0] = 8 if ctypes.sizeof(ctypes.c_void_p) == 8 else 6
+                sa.SetupDiGetDeviceInterfaceDetailW(h, ctypes.byref(d), buf, n, None, None)
+                path = ctypes.wstring_at(ctypes.addressof(buf) + 4)
+                f = k32.CreateFileW(path, 0, 3, None, 3, 0, None)
+                if f in (None, INVALID):
+                    continue
+                a = ATTR(); a.Size = ctypes.sizeof(ATTR); hid.HidD_GetAttributes(ctypes.c_void_p(f), ctypes.byref(a))
+                pp = ctypes.c_void_p(); c = CAPS()
+                if hid.HidD_GetPreparsedData(ctypes.c_void_p(f), ctypes.byref(pp)):
+                    hid.HidP_GetCaps(pp, ctypes.byref(c)); hid.HidD_FreePreparsedData(pp)
+                k32.CloseHandle(ctypes.c_void_p(f))
+                if (a.VID, a.PID, c.Feat) == (VID, PID, REPORT_LEN):
+                    return path
+        finally:
+            sa.SetupDiDestroyDeviceInfoList(h)
 
-def find_path():
-    g = GUID(); hid.HidD_GetHidGuid(ctypes.byref(g))
-    h = ctypes.c_void_p(sa.SetupDiGetClassDevsW(ctypes.byref(g), None, None, 0x12))
-    i = 0
-    try:
-        while True:
-            d = IFD(); d.cb = ctypes.sizeof(IFD)
-            if not sa.SetupDiEnumDeviceInterfaces(h, None, ctypes.byref(g), i, ctypes.byref(d)):
-                return None
-            i += 1
-            n = wt.DWORD()
-            sa.SetupDiGetDeviceInterfaceDetailW(h, ctypes.byref(d), None, 0, ctypes.byref(n), None)
-            buf = ctypes.create_string_buffer(n.value)
-            ctypes.cast(buf, ctypes.POINTER(wt.DWORD))[0] = 8 if ctypes.sizeof(ctypes.c_void_p) == 8 else 6
-            sa.SetupDiGetDeviceInterfaceDetailW(h, ctypes.byref(d), buf, n, None, None)
-            path = ctypes.wstring_at(ctypes.addressof(buf) + 4)
-            f = k32.CreateFileW(path, 0, 3, None, 3, 0, None)
-            if f in (None, INVALID):
-                continue
-            a = ATTR(); a.Size = ctypes.sizeof(ATTR); hid.HidD_GetAttributes(ctypes.c_void_p(f), ctypes.byref(a))
-            pp = ctypes.c_void_p(); c = CAPS()
-            if hid.HidD_GetPreparsedData(ctypes.c_void_p(f), ctypes.byref(pp)):
-                hid.HidP_GetCaps(pp, ctypes.byref(c)); hid.HidD_FreePreparsedData(pp)
-            k32.CloseHandle(ctypes.c_void_p(f))
-            if (a.VID, a.PID, c.Feat) == (VID, PID, REPORT_LEN):
-                return path
-    finally:
-        sa.SetupDiDestroyDeviceInfoList(h)
+    class Transport:
+        """Windows: hid.dll on the collection whose feature report is 520 bytes long."""
+
+        def __init__(self):
+            path = find_path()
+            if not path:
+                raise F75Error('err.notFound')
+            self.h = k32.CreateFileW(path, 0xC0000000, 3, None, 3, 0, None)
+            if self.h in (None, INVALID):
+                raise F75Error('err.open')
+
+        def close(self):
+            k32.CloseHandle(ctypes.c_void_p(self.h))
+
+        def set_feature(self, data):
+            return bool(hid.HidD_SetFeature(ctypes.c_void_p(self.h), (ctypes.c_ubyte * len(data))(*data), len(data)))
+
+        def get_feature(self, size):
+            r = (ctypes.c_ubyte * size)(); r[0] = REPORT_ID
+            return bytes(r) if hid.HidD_GetFeature(ctypes.c_void_p(self.h), r, size) else None
+
+else:
+    class Transport:
+        """Linux: hidraw. The keyboard's second USB interface carries report id 6; access needs a udev rule."""
+
+        def __init__(self):
+            import fcntl, glob
+            self.ioctl, denied = fcntl.ioctl, False
+            for node in sorted(glob.glob('/sys/class/hidraw/hidraw*')):
+                try:
+                    with open(node + '/device/uevent') as f:
+                        if f'{VID:08X}:{PID:08X}' not in f.read().upper():
+                            continue
+                    with open(node + '/device/report_descriptor', 'rb') as f:
+                        if bytes([0x85, REPORT_ID]) not in f.read():   # 0x85 = "Report ID" item
+                            continue
+                    self.fd = os.open('/dev/' + os.path.basename(node), os.O_RDWR)
+                    return
+                except PermissionError:
+                    denied = True
+                except OSError:
+                    pass
+            raise F75Error('err.linuxAccess' if denied else 'err.notFound')
+
+        def close(self):
+            os.close(self.fd)
+
+        def _feature(self, nr, buf):   # HIDIOCSFEATURE(len) is nr 6, HIDIOCGFEATURE(len) is nr 7
+            try:
+                self.ioctl(self.fd, 0xC0000000 | len(buf) << 16 | ord('H') << 8 | nr, buf, True)
+                return True
+            except OSError:
+                return False
+
+        def set_feature(self, data):
+            return self._feature(0x06, bytearray(data))
+
+        def get_feature(self, size):
+            buf = bytearray(size); buf[0] = REPORT_ID
+            return bytes(buf) if self._feature(0x07, buf) else None
 
 
 class F75:
     def __init__(self):
-        path = find_path()
-        if not path:
-            raise F75Error('err.notFound')
-        self.h = k32.CreateFileW(path, 0xC0000000, 3, None, 3, 0, None)
-        if self.h in (None, INVALID):
-            raise F75Error('err.open')
-        if self.read(0x82, 1, 6) != DEVICE_ID:
+        self.t = Transport()
+        if self.read(0x82, 1, 6) not in DEVICE_IDS:
             self.close()
             raise F75Error('err.wrongDevice')
 
     def close(self):
-        if self.h not in (None, INVALID):
-            k32.CloseHandle(ctypes.c_void_p(self.h))
-        self.h = None
+        if self.t:
+            self.t.close()
+        self.t = None
 
     def _packet(self, cmd, idx, size, data=b'', chunks=1, chunk=0):
-        b = (ctypes.c_ubyte * REPORT_LEN)()
+        b = bytearray(REPORT_LEN)
         b[0], b[1], b[2], b[4], b[5], b[6], b[7] = REPORT_ID, cmd, idx, chunks, chunk, size & 0xFF, size >> 8
         b[8:8 + len(data)] = data
         return b
 
     def _set(self, b):
         for _ in range(3):
-            if hid.HidD_SetFeature(ctypes.c_void_p(self.h), b, REPORT_LEN):
+            if self.t.set_feature(b):
                 return
             time.sleep(0.07)
         raise F75Error('err.noReply')
@@ -210,10 +270,10 @@ class F75:
             n = min(0x200, size - i * 0x200)
             self._set(self._packet(cmd, idx, n, chunks=chunks, chunk=i))
             time.sleep(0.03)
-            r = (ctypes.c_ubyte * REPORT_LEN)(); r[0] = REPORT_ID
-            if not hid.HidD_GetFeature(ctypes.c_void_p(self.h), r, REPORT_LEN):
+            r = self.t.get_feature(REPORT_LEN)
+            if r is None:
                 raise F75Error('err.noReply')
-            out += bytes(r[8:8 + n])
+            out += r[8:8 + n]
         return out
 
     def write(self, cmd, idx, data):
@@ -553,7 +613,9 @@ def load_profile(kb, name):
 
 # --- web UI --------------------------------------------------------------------
 def cursor_color():
-    """Colour of the screen pixel under the mouse pointer as rrggbb, or None if Windows will not tell."""
+    """Colour of the screen pixel under the mouse pointer as rrggbb, or None if the system will not tell."""
+    if sys.platform != 'win32':
+        return None
     user32, gdi32 = ctypes.WinDLL('user32'), ctypes.WinDLL('gdi32')
     user32.GetDC.restype = ctypes.c_void_p
     gdi32.GetPixel.restype = wt.DWORD
@@ -567,7 +629,33 @@ def cursor_color():
     return None if c == 0xFFFFFFFF else f'{c & 255:02x}{c >> 8 & 255:02x}{c >> 16 & 255:02x}'
 
 
-def serve(port, open_browser):
+WEBVIEW2_PAGE = 'https://developer.microsoft.com/microsoft-edge/webview2/'
+
+
+def webview2_version():
+    """Version of the installed Edge WebView2 runtime, or None. The program's own window needs it."""
+    import winreg
+    client = r'Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+    for root, path in ((winreg.HKEY_LOCAL_MACHINE, 'SOFTWARE\\WOW6432Node\\' + client),
+                       (winreg.HKEY_LOCAL_MACHINE, 'SOFTWARE\\' + client), (winreg.HKEY_CURRENT_USER, 'SOFTWARE\\' + client)):
+        try:
+            with winreg.OpenKey(root, path) as key:
+                version = winreg.QueryValueEx(key, 'pv')[0]
+                if version and version != '0.0.0.0':
+                    return version
+        except OSError:
+            pass
+    return None
+
+
+def message_box(text, yes_no=False):
+    """A plain Windows message box; with yes_no it returns True for Yes."""
+    flags = 0x40 | (0x04 if yes_no else 0)   # information icon, Yes/No or OK
+    return ctypes.WinDLL('user32').MessageBoxW(None, text, 'AULA F75', flags) == 6
+
+
+def serve(port, open_browser, window=False):
+    """Serve the setup page. window=True shows it in the program's own window instead of the browser."""
     import http.server, webbrowser
     try:   # real pixel coordinates for the screen colour picker on scaled displays
         ctypes.WinDLL('shcore').SetProcessDpiAwareness(2)
@@ -697,14 +785,43 @@ def serve(port, open_browser):
             except (KeyError, ValueError, TypeError) as e:
                 self._send(400, json.dumps({'error': tr('err.request', self._lang())}).encode())
 
-    url = f'http://127.0.0.1:{port}/'
     try:
-        srv = http.server.ThreadingHTTPServer(('127.0.0.1', port), Handler)
+        srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0 if window else port), Handler)
     except OSError:
         # most likely a second launch: the page is already being served, just show it
+        url = f'http://127.0.0.1:{port}/'
         print(tr('cli.running', url=url))
         if open_browser:
             webbrowser.open(url)
+        return
+    port = srv.server_address[1]   # the window uses any free port; Handler checks requests against it
+    url = f'http://127.0.0.1:{port}/'
+    held_open_by_box = False
+    if window:
+        try:
+            import webview   # pywebview: a native window around the system WebView2
+        except ImportError:
+            window = False
+            print(tr('cli.noWindow'))
+    if window and sys.platform == 'win32' and not webview2_version():
+        # Without the runtime pywebview would fall back to the Internet Explorer engine, which cannot show the page
+        if not message_box(tr('app.noWebview'), yes_no=True):
+            webbrowser.open(WEBVIEW2_PAGE)
+            return
+        window, held_open_by_box = False, True
+    if window:
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        storage = pathlib.Path(os.environ.get('LOCALAPPDATA', APP_DIR)) / 'aula-f75-software'
+        webview.create_window('AULA F75', url, width=1380, height=940, min_size=(1000, 700), background_color='#09090b')
+        gui = 'edgechromium' if sys.platform == 'win32' else None   # never the Internet Explorer fallback
+        webview.start(gui=gui, private_mode=False, storage_path=str(storage))   # returns when the window is closed
+        srv.shutdown()
+        return
+    if held_open_by_box:   # no console and no window of our own: a message box keeps the program alive
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        webbrowser.open(url)
+        message_box(tr('app.inBrowser'))
+        srv.shutdown()
         return
     print(tr('cli.started', url=url))
     if open_browser:
@@ -718,13 +835,20 @@ def serve(port, open_browser):
 # --- CLI -----------------------------------------------------------------------
 def main():
     global LANG
-    if len(sys.argv) == 1:   # started by a double click: open the setup page
-        sys.argv.append('ui')
+    if sys.platform == 'win32' and getattr(sys, 'frozen', False) and sys.stdout is None:
+        # the .exe has no console of its own; when started from a terminal, write to that terminal
+        if len(sys.argv) > 1 and ctypes.WinDLL('kernel32').AttachConsole(-1):
+            sys.stdout = sys.stderr = open('CONOUT$', 'w', errors='replace')
+        else:
+            sys.stdout = sys.stderr = open(os.devnull, 'w')
+    if len(sys.argv) == 1:   # started without a command: the program's window, or the browser on Linux
+        sys.argv.append('app' if sys.platform == 'win32' else 'ui')
     if '--lang' in sys.argv[1:-1]:   # needed before the parser is built: its help texts are translated too
         LANG = {'ru': 'ru', 'en': 'en'}.get(sys.argv[sys.argv.index('--lang') + 1], LANG)
     p = argparse.ArgumentParser(description=tr('cli.desc'))
     p.add_argument('--lang', choices=('ru', 'en'), help=tr('cli.lang'))
     sub = p.add_subparsers(dest='cmd', required=True)
+    sub.add_parser('app', help=tr('cli.app'))
     s = sub.add_parser('ui', help=tr('cli.ui'))
     s.add_argument('--port', type=int, default=7575, help=tr('cli.port'))
     s.add_argument('--no-browser', action='store_true', help=tr('cli.noBrowser'))
@@ -746,6 +870,8 @@ def main():
     sub.add_parser('profiles', help=tr('cli.profiles'))
     a = p.parse_args()
 
+    if a.cmd == 'app':
+        return serve(7575, True, window=True)
     if a.cmd == 'ui':
         return serve(a.port, not a.no_browser)
     if a.cmd == 'modes':

@@ -1,0 +1,3 @@
+# Lets the logged-in user configure the AULA F75 keyboard (wired, 258a:010c) without root.
+# Install: sudo cp 60-aula-f75.rules /etc/udev/rules.d/ && sudo udevadm control --reload && replug the cable
+KERNEL=="hidraw*", ATTRS{idVendor}=="258a", ATTRS{idProduct}=="010c", TAG+="uaccess"

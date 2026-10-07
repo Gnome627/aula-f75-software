@@ -183,7 +183,7 @@
   "confirm.profileReplace": "Профиль «{name}» уже есть. Заменить его текущими настройками?",
   "toast.profileSaved": "Профиль «{name}» сохранён",
   "err.generic": "Что-то пошло не так. Попробуйте ещё раз.",
-  "err.noServer": "Программа не отвечает. Проверьте, что окно с f75.py не закрыто.",
+  "err.noServer": "Программа не отвечает. Запустите её заново.",
   "err.notFound": "Клавиатура не найдена. Подключите её через USB и включите соответствующий режим.",
   "err.open": "Не удалось подключиться к клавиатуре. Если открыта фирменная программа AULA, закройте её.",
   "err.wrongDevice": "Подключённая клавиатура не похожа на AULA F75.",
@@ -240,7 +240,12 @@
   "paint.picHint": "Двигайте картинку мышью, колесо меняет масштаб. Каждая клавиша берёт средний цвет своего участка.",
   "paint.picError": "Не получилось открыть эту картинку.",
   "history.undoTitle": "Отменить последнее изменение (Ctrl+Z)",
-  "history.redoTitle": "Вернуть отменённое (Ctrl+Y)"
+  "history.redoTitle": "Вернуть отменённое (Ctrl+Y)",
+  "cli.app": "открыть настройку в отдельном окне",
+  "cli.noWindow": "Не получилось открыть окно программы (нет pywebview), открываю в браузере.",
+  "app.noWebview": "Чтобы открыть программу в собственном окне, нужен компонент Microsoft Edge WebView2, а на этом компьютере его нет.\n\nДа — открыть настройку в браузере.\nНет — перейти на страницу загрузки WebView2 и закрыть программу.",
+  "app.inBrowser": "Настройка открыта в браузере.\n\nНажмите ОК, когда закончите: программа закроется.",
+  "err.linuxAccess": "Клавиатура найдена, но у программы нет прав на доступ к ней. Установите правило udev из README и переподключите кабель."
  },
  "en": {
   "nav.light": "Lighting",
@@ -426,7 +431,7 @@
   "confirm.profileReplace": "Profile \"{name}\" already exists. Replace it with the current settings?",
   "toast.profileSaved": "Profile \"{name}\" saved",
   "err.generic": "Something went wrong. Please try again.",
-  "err.noServer": "The program is not responding. Check that the f75.py window is still open.",
+  "err.noServer": "The program is not responding. Start it again.",
   "err.notFound": "Keyboard not found. Connect it by cable and switch it to USB mode.",
   "err.open": "Could not connect to the keyboard. If the AULA vendor software is open, close it.",
   "err.wrongDevice": "The connected keyboard does not look like an AULA F75.",
@@ -483,6 +488,11 @@
   "paint.picHint": "Drag the picture to move it, scroll to zoom. Each key takes the average color of its patch.",
   "paint.picError": "Could not open this picture.",
   "history.undoTitle": "Undo the last change (Ctrl+Z)",
-  "history.redoTitle": "Redo the undone change (Ctrl+Y)"
+  "history.redoTitle": "Redo the undone change (Ctrl+Y)",
+  "cli.app": "open the setup in its own window",
+  "cli.noWindow": "Could not open the program window (pywebview is missing), opening the browser instead.",
+  "app.noWebview": "The program needs the Microsoft Edge WebView2 component to open in its own window, and this computer does not have it.\n\nYes — open the setup in the browser.\nNo — go to the WebView2 download page and close the program.",
+  "app.inBrowser": "The setup is open in the browser.\n\nClick OK when you are done: the program will close.",
+  "err.linuxAccess": "The keyboard was found, but the program is not allowed to access it. Install the udev rule from the README and replug the cable."
  }
 }

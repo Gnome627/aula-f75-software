@@ -8,10 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  windows:
     runs-on: windows-latest
-    permissions:
-      contents: write   # only used to publish a release for v* tags
     steps:
       - uses: actions/checkout@v4
 
@@ -19,25 +17,66 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install PyInstaller
-        run: pip install pyinstaller
+      - name: Install build tools
+        run: pip install pyinstaller -r requirements.txt
 
       - name: Build AULA-F75.exe
         run: >
-          pyinstaller --noconfirm --onefile --name AULA-F75 --icon icon.ico
+          pyinstaller --noconfirm --onefile --noconsole --name AULA-F75 --icon icon.ico
           --add-data "ui.html;." --add-data "strings.json;." f75.py
 
       - name: Smoke test
-        run: dist\AULA-F75.exe --lang en modes
+        run: |
+          $p = Start-Process dist\AULA-F75.exe -ArgumentList '--lang', 'en', 'modes' -Wait -PassThru
+          exit $p.ExitCode
 
       - uses: actions/upload-artifact@v4
         with:
-          name: AULA-F75
+          name: AULA-F75-windows
           path: dist/AULA-F75.exe
 
+  linux:
+    runs-on: ubuntu-22.04   # an older system library, so the binary also starts on older distributions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build tools
+        run: pip install pyinstaller
+
+      - name: Build aula-f75
+        run: >
+          pyinstaller --noconfirm --onefile --name aula-f75
+          --add-data "ui.html:." --add-data "strings.json:." f75.py
+
+      - name: Smoke test
+        run: dist/aula-f75 --lang en modes
+
+      - name: Pack with the udev rule
+        run: tar -czf aula-f75-linux-x86_64.tar.gz -C dist aula-f75 -C .. 60-aula-f75.rules README.md LICENSE
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AULA-F75-linux
+          path: aula-f75-linux-x86_64.tar.gz
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$env:TAG" dist/AULA-F75.exe --generate-notes
+        run: gh release create "$TAG" AULA-F75.exe aula-f75-linux-x86_64.tar.gz --generate-notes
