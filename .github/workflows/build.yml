@@ -20,20 +20,48 @@ jobs:
       - name: Install build tools
         run: pip install pyinstaller -r requirements.txt
 
-      - name: Build AULA-F75.exe
+      - name: Build the portable exe (one file)
         run: >
           pyinstaller --noconfirm --onefile --noconsole --name AULA-F75 --icon icon.ico
           --add-data "ui.html;." --add-data "strings.json;." f75.py
 
-      - name: Smoke test
+      - name: Smoke test the portable exe
         run: |
           $p = Start-Process dist\AULA-F75.exe -ArgumentList '--lang', 'en', 'modes' -Wait -PassThru
-          exit $p.ExitCode
+          if ($p.ExitCode -ne 0) { exit $p.ExitCode }
+          Rename-Item dist\AULA-F75.exe AULA-F75-portable.exe
+
+      - name: Build the program folder for the installer
+        run: >
+          pyinstaller --noconfirm --onedir --noconsole --name AULA-F75 --icon icon.ico
+          --add-data "ui.html;." --add-data "strings.json;." --distpath dist-dir f75.py
+
+      - name: Build the installer
+        run: |
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          $version = if ($env:GITHUB_REF -like 'refs/tags/v*') { $env:GITHUB_REF_NAME.Substring(1) } else { '0.0.0' }
+          & $iscc "/DAppVersion=$version" installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Smoke test the installer
+        run: |
+          $p = Start-Process dist\AULA-F75-setup.exe -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/CURRENTUSER', '/NORESTART' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { exit $p.ExitCode }
+          $app = "$env:LOCALAPPDATA\Programs\AULA F75"
+          if (-not (Test-Path "$app\AULA-F75.exe") -or -not (Test-Path "$app\unins000.exe")) { Get-ChildItem $app; exit 1 }
+          $p = Start-Process "$app\AULA-F75.exe" -ArgumentList '--lang', 'en', 'modes' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { exit $p.ExitCode }
+          $p = Start-Process "$app\unins000.exe" -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
+          Start-Sleep -Seconds 3
+          if (Test-Path "$app\AULA-F75.exe") { Write-Error 'uninstall left the program behind'; exit 1 }
 
       - uses: actions/upload-artifact@v4
         with:
           name: AULA-F75-windows
-          path: dist/AULA-F75.exe
+          path: |
+            dist/AULA-F75-portable.exe
+            dist/AULA-F75-setup.exe
 
   linux:
     runs-on: ubuntu-22.04   # an older system library, so the binary also starts on older distributions
@@ -79,4 +107,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" AULA-F75.exe aula-f75-linux-x86_64.tar.gz --generate-notes
+        run: gh release create "$TAG" AULA-F75-setup.exe AULA-F75-portable.exe aula-f75-linux-x86_64.tar.gz --generate-notes

@@ -21,8 +21,15 @@ Russian and English.
 
 ## Running
 
-Download `AULA-F75.exe` from the releases page and start it: the program opens in its own window.
-It needs the Microsoft Edge WebView2 runtime, which Windows 11 and up-to-date Windows 10 already have.
+Windows downloads on the releases page:
+
+- `AULA-F75-setup.exe` — installer. Installs for the current user without administrator rights, adds a
+  Start menu entry and an uninstaller. Profiles are kept in `%APPDATA%\AULA F75\profiles`.
+- `AULA-F75-portable.exe` — a single file that needs no installation. Profiles are kept in a `profiles`
+  folder next to it.
+
+Either way the program opens in its own window. It needs the Microsoft Edge WebView2 runtime, which
+Windows 11 and up-to-date Windows 10 already have.
 
 ### Linux
 
@@ -53,7 +60,7 @@ in the browser instead and works without any packages.
 `python f75.py -h` lists the command-line commands (`mode`, `set`, `custom`, `save`, `load`, …);
 `--lang ru|en` selects the language. The `.exe` accepts the same commands when started from a terminal.
 
-Profiles are stored in the `profiles` folder next to the program.
+Run from source, profiles are stored in the `profiles` folder next to the program.
 
 ## Building
 
@@ -71,8 +78,8 @@ pip install pyinstaller
 pyinstaller --onefile --name aula-f75 --add-data "ui.html:." --add-data "strings.json:." f75.py
 ```
 
-The GitHub workflow in `.github/workflows/build.yml` does both on every push and attaches the results to a
-release when a `v*` tag is pushed.
+The GitHub workflow in `.github/workflows/build.yml` does both on every push, also builds the Windows
+installer from `installer.iss` with Inno Setup, and attaches everything to a release when a `v*` tag is pushed.
 
 ## Files
 

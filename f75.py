@@ -36,7 +36,11 @@ DEFAULT_PALETTE = ['ff0000', '00ff00', '0000ff', 'ffff00', 'ff00ff', '00ffff', '
 # Built as an .exe (PyInstaller), the page and the texts are packed inside it, while profiles stay next to the .exe
 APP_DIR = pathlib.Path(sys.executable if getattr(sys, 'frozen', False) else __file__).resolve().parent
 PACKED_DIR = pathlib.Path(getattr(sys, '_MEIPASS', APP_DIR))
-PROFILE_DIR = APP_DIR / 'profiles'
+# Portable: profiles live next to the program. Installed by the setup (it leaves its uninstaller there):
+# profiles go to the user's application data, so that updating or removing the program keeps them.
+INSTALLED = (APP_DIR / 'unins000.exe').exists()
+DATA_DIR = pathlib.Path(os.environ.get('APPDATA', APP_DIR)) / 'AULA F75' if INSTALLED else APP_DIR
+PROFILE_DIR = DATA_DIR / 'profiles'
 
 
 def resource(name):
@@ -600,7 +604,7 @@ def list_profiles():
 
 
 def save_profile(kb, name):
-    PROFILE_DIR.mkdir(exist_ok=True)
+    PROFILE_DIR.mkdir(parents=True, exist_ok=True)
     profile_path(name).write_text(json.dumps(kb.snapshot(), indent=1), encoding='utf-8')
 
 
